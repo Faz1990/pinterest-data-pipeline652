@@ -36,8 +36,8 @@ def json_serial(obj):
     raise TypeError ("Type not serializable")
 
 def send_data_to_api(topic_suffix, data):
-    base_url = "https://fqso1f4f05.execute-api.us-east-1.amazonaws.com/beta"
-    topic_url = f"{base_url}.{topic_suffix}"
+    base_url = "https://fqso1f4f05.execute-api.us-east-1.amazonaws.com/beta/topics"
+    topic_url = f"{base_url}/{topic_suffix}"
     headers = {'Content-Type': 'application/json'} 
     try:
         response = requests.post(topic_url, data=json.dumps(data, default=json_serial), headers=headers)
