@@ -30,24 +30,16 @@ class AWSDBConnector:
 
 new_connector = AWSDBConnector()
 
-def json_serial(obj):
-    """JSON serializer for objects not serializable by default json code"""
-    if isinstance(obj, datetime):
-        return obj.isoformat()
-    raise TypeError("Type not serializable")
+def send_data_to_api(data, topic, payload):
+    invoke_url = "https://fqso1f4f05.execute-api.us-east-1.amazonaws.com/beta"
+    url = invoke_url + "/topics/" + topic
+    print (url)
 
-def send_data_to_api(topic_suffix, data):
-    base_url = "https://fqso1f4f05.execute-api.us-east-1.amazonaws.com/beta"
-    topic_url = f"{base_url}/topics/{topic_suffix}"
-    headers = {'Content-Type': 'application/vnd.kafka.json.v2+json'} 
-    try:
-        response = requests.post(topic_url, data=json.dumps(data, default=json_serial), headers=headers)
-        if response.status_code == 200:
-            print(f"Successfully sent data to {topic_suffix} topic.")
-        else:
-            print(f"Failed to send data to {topic_suffix} topic. Status code: {response.status_code}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    headers = {'Content-Type': 'application/vnd.kafka.json.v2+json'}
+    response = requests.request("POST",url, headers = headers, data = payload)
+    print (response.status_code)
+
+    return 
 
 def run_infinite_post_data_loop():
     while True:
