@@ -36,9 +36,9 @@ def json_serial(obj):
     raise TypeError ("Type not serializable")
 
 def send_data_to_api(topic_suffix, data):
-    base_url = "https://fqso1f4f05.execute-api.us-east-1.amazonaws.com/beta/topics"
+    base_url = "https://fqso1f4f05.execute-api.us-east-1.amazonaws.com/beta"
     topic_url = f"{base_url}/{topic_suffix}"
-    headers = {'Content-Type': 'application/json'} 
+    headers = {'Content-Type': 'application/vnd.kafka.json.v2+json'} 
     try:
         response = requests.post(topic_url, data=json.dumps(data, default=json_serial), headers=headers)
         if response.status_code == 200:
@@ -47,7 +47,6 @@ def send_data_to_api(topic_suffix, data):
             print(f"Failed to send data to {topic_suffix} topic. Status code: {response.status_code}")
     except Exception as e:
         print(f"An error occurred: {e}")
-
 
 
 def run_infinite_post_data_loop():
