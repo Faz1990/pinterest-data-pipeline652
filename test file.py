@@ -32,7 +32,7 @@ new_connector = AWSDBConnector()
 
 def send_data_to_api(data, topic, payload):
     invoke_url = "https://fqso1f4f05.execute-api.us-east-1.amazonaws.com/beta"
-    url = invoke_url + "/topics/" + topic
+    url = f"{invoke_url}/topics/{topic}"
     print (url)
 
     headers = {'Content-Type': 'application/vnd.kafka.json.v2+json'}
