@@ -30,17 +30,23 @@ class AWSDBConnector:
             logging.error("Database connection failed: %s", e)
             raise
 
-def send_data_to_kinesis(data, stream_name):
-    try:
-        invoke_url = "https://fqso1f4f05.execute-api.us-east-1.amazonaws.com/beta"
-        url = f"{invoke_url}/streams/{stream_name}/record"
-        headers = {'Content-Type': 'application/json'}
-        response = requests.post(url, headers=headers, data=json.dumps(data))
-        response.raise_for_status()
-        logging.info("Data sent to Kinesis successfully: %s", response.status_code)
-    except requests.RequestException as e:
-        logging.error("Failed to send data to Kinesis: %s", e)
-        return None
+def send_data_to_kinesis(data, stream_name, max_retries=5):
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            invoke_url = "https://p5k3s07dwl.execute-api.us-east-1.amazonaws.com/beta"
+            url = f"{invoke_url}/streams/{stream_name}/record"
+            headers = {'Content-Type': 'application/json'}
+            response = requests.post(url, headers=headers, data=json.dumps(data))
+            response.raise_for_status()
+            logging.info("Data sent to Kinesis successfully: %s", response.status_code)
+            return
+        except requests.RequestException as e:
+            attempt += 1
+            sleep_time = 2 ** attempt
+            logging.error("Failed to send data to Kinesis (attempt %d): %s", attempt, e)
+            sleep(sleep_time)
+    logging.error("Max retries exceeded. Failed to send data to Kinesis: %s", data)
 
 def fetch_and_send_data(connection, query, stream_name, transform_function):
     result = connection.execute(query).fetchone()
@@ -97,15 +103,15 @@ def run_infinite_post_data_loop():
             with engine.connect() as connection:
                 # Pinterest data
                 pin_query = text(f"SELECT * FROM pinterest_data LIMIT {random_row}, 1")
-                fetch_and_send_data(connection, pin_query, "streaming-0ec6d756577b-pin", transform_pin_data)
+                fetch_and_send_data(connection, pin_query, "streaming-12b83b649269-pin", transform_pin_data)
 
                 # Geolocation data
                 geo_query = text(f"SELECT * FROM geolocation_data LIMIT {random_row}, 1")
-                fetch_and_send_data(connection, geo_query, "streaming-0ec6d756577b-geo", transform_geo_data)
+                fetch_and_send_data(connection, geo_query, "streaming-12b83b649269-geo", transform_geo_data)
 
                 # User data
                 user_query = text(f"SELECT * FROM user_data LIMIT {random_row}, 1")
-                fetch_and_send_data(connection, user_query, "streaming-0ec6d756577b-user", transform_user_data)
+                fetch_and_send_data(connection, user_query, "streaming-12b83b649269-user", transform_user_data)
 
         except Exception as e:
             logging.error("An error occurred: %s", e)
