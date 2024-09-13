@@ -6,6 +6,7 @@ import sqlalchemy
 from sqlalchemy import text
 import json
 import yaml
+import base64
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -34,30 +35,43 @@ def send_data_to_kinesis(data, stream_name, max_retries=5):
     attempt = 0
     while attempt < max_retries:
         try:
+            # Base64 encode the data, as required by Kinesis
+            encoded_data = base64.b64encode(json.dumps(data).encode('utf-8')).decode('utf-8')
+            
+            # Prepare payload for Kinesis
+            payload = {
+                "Data": encoded_data,
+                "PartitionKey": str(random.randint(0, 1000))
+            }
+
+            # API Gateway endpoint and headers
             invoke_url = "https://p5k3s07dwl.execute-api.us-east-1.amazonaws.com/beta"
             url = f"{invoke_url}/streams/{stream_name}/record"
             headers = {'Content-Type': 'application/json'}
-            response = requests.post(url, headers=headers, data=json.dumps(data))
+
+            # Send the request
+            response = requests.post(url, headers=headers, data=json.dumps(payload))
             response.raise_for_status()
+
             logging.info("Data sent to Kinesis successfully: %s", response.status_code)
             return
         except requests.RequestException as e:
             attempt += 1
             sleep_time = 2 ** attempt
-            logging.error("Failed to send data to Kinesis (attempt %d): %s", attempt, e)
+            logging.error("Failed to send data to Kinesis (attempt %d): %s. Response: %s", attempt, e, response.text if response else "No Response")
             sleep(sleep_time)
+
     logging.error("Max retries exceeded. Failed to send data to Kinesis: %s", data)
 
 def fetch_and_send_data(connection, query, stream_name, transform_function):
-    result = connection.execute(query).fetchone()
-    if result:
-        data_dict = dict(result._mapping)
-        payload = {
-            "Data": json.dumps(transform_function(data_dict)),
-            "PartitionKey": str(random.randint(0, 1000))
-        }
-        send_data_to_kinesis(payload, stream_name)
-        logging.info("Data sent: %s", data_dict)
+    try:
+        result = connection.execute(query).fetchone()
+        if result:
+            data_dict = dict(result._mapping)
+            send_data_to_kinesis(data_dict, stream_name)
+            logging.info("Data sent: %s", data_dict)
+    except Exception as e:
+        logging.error("Error in fetch and send: %s", e)
 
 def transform_pin_data(pin_dict):
     return {
