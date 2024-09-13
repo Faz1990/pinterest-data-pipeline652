@@ -35,9 +35,9 @@ def send_data_to_kinesis(data, stream_name, max_retries=5):
     attempt = 0
     while attempt < max_retries:
         try:
-            # Base64 encode the data, as required by Kinesis
+            # Base64 encode the data
             encoded_data = base64.b64encode(json.dumps(data).encode('utf-8')).decode('utf-8')
-            
+
             # Prepare payload for Kinesis
             payload = {
                 "Data": encoded_data,
@@ -68,7 +68,8 @@ def fetch_and_send_data(connection, query, stream_name, transform_function):
         result = connection.execute(query).fetchone()
         if result:
             data_dict = dict(result._mapping)
-            send_data_to_kinesis(data_dict, stream_name)
+            transformed_data = transform_function(data_dict)
+            send_data_to_kinesis(transformed_data, stream_name)
             logging.info("Data sent: %s", data_dict)
     except Exception as e:
         logging.error("Error in fetch and send: %s", e)
@@ -92,7 +93,7 @@ def transform_pin_data(pin_dict):
 def transform_geo_data(geo_dict):
     return {
         "ind": geo_dict["ind"],
-        "timestamp": geo_dict["timestamp"].isoformat(),
+        "timestamp": geo_dict["timestamp"].isoformat(),  
         "latitude": geo_dict["latitude"],
         "longitude": geo_dict["longitude"],
         "country": geo_dict["country"]
@@ -104,8 +105,7 @@ def transform_user_data(user_dict):
         "first_name": user_dict["first_name"],
         "last_name": user_dict["last_name"],
         "age": user_dict["age"],
-        "date_joined": user_dict["date_joined"].isoformat()
-    }
+        "date_joined": user_dict["date_joined"].isoformat() 
 
 def run_infinite_post_data_loop():
     while True:
