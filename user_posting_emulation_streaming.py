@@ -6,7 +6,6 @@ import sqlalchemy
 from sqlalchemy import text
 import json
 import yaml
-import base64
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -35,19 +34,20 @@ def send_data_to_kinesis(data, stream_name, max_retries=5):
     attempt = 0
     while attempt < max_retries:
         try:
-            # Base64 encode the data
-            encoded_data = base64.b64encode(json.dumps(data).encode('utf-8')).decode('utf-8')
-
             # Prepare payload for Kinesis
             payload = {
-                "Data": encoded_data,
-                "PartitionKey": str(random.randint(0, 1000))
+                "StreamName": stream_name,
+                "Data": data,  # Directly send data as a dict, no base64 encoding
+                "PartitionKey": "partition-" + str(random.randint(0, 1000))
             }
 
             # API Gateway endpoint and headers
             invoke_url = "https://p5k3s07dwl.execute-api.us-east-1.amazonaws.com/beta"
             url = f"{invoke_url}/streams/{stream_name}/record"
             headers = {'Content-Type': 'application/json'}
+
+            # Log the payload for debugging
+            logging.info(f"Payload being sent: {json.dumps(payload)}")
 
             # Send the request
             response = requests.post(url, headers=headers, data=json.dumps(payload))
@@ -93,7 +93,7 @@ def transform_pin_data(pin_dict):
 def transform_geo_data(geo_dict):
     return {
         "ind": geo_dict["ind"],
-        "timestamp": geo_dict["timestamp"].isoformat(),  
+        "timestamp": geo_dict["timestamp"].isoformat(),  # Converts datetime to string
         "latitude": geo_dict["latitude"],
         "longitude": geo_dict["longitude"],
         "country": geo_dict["country"]
@@ -105,7 +105,8 @@ def transform_user_data(user_dict):
         "first_name": user_dict["first_name"],
         "last_name": user_dict["last_name"],
         "age": user_dict["age"],
-        "date_joined": user_dict["date_joined"].isoformat() 
+        "date_joined": user_dict["date_joined"].isoformat()  # Converts datetime to string
+    }
 
 def run_infinite_post_data_loop():
     while True:
