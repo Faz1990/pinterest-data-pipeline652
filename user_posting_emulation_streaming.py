@@ -37,19 +37,8 @@ def send_data_to_kinesis(data, stream_name, max_retries=5):
             invoke_url = "https://p5k3s07dwl.execute-api.us-east-1.amazonaws.com/beta"
             url = f"{invoke_url}/streams/{stream_name}/record"
             headers = {'Content-Type': 'application/json'}
-            
-            # Serialize the data using json.dumps before sending
-            payload = {
-                "StreamName": stream_name,
-                "Data": json.dumps(data),  # Ensure the data is properly serialized
-                "PartitionKey": f"partition-{random.randint(1, 1000)}"
-            }
-
-            logging.info(f"Payload being sent: {json.dumps(payload)}")
-            
-            # Sending the payload to Kinesis
-            response = requests.post(url, headers=headers, data=json.dumps(payload))
-            response.raise_for_status()  # This will raise an error for non-2xx responses
+            response = requests.post(url, headers=headers, data=json.dumps(data))
+            response.raise_for_status()
             logging.info("Data sent to Kinesis successfully: %s", response.status_code)
             return
         except requests.RequestException as e:
@@ -64,9 +53,10 @@ def fetch_and_send_data(connection, query, stream_name, transform_function):
         result = connection.execute(query).fetchone()
         if result:
             data_dict = dict(result._mapping)
-            transformed_data = transform_function(data_dict)  # Apply the transformation function
-            send_data_to_kinesis(transformed_data, stream_name)  # Send the transformed data to Kinesis
-            logging.info("Data sent: %s", transformed_data)
+            transformed_data = transform_function(data_dict)  # Call the appropriate transformation function
+            send_data_to_kinesis(transformed_data, stream_name)
+            logging.info("Data sent: %s", data_dict)
+            return transformed_data
     except Exception as e:
         logging.error("Error in fetch and send: %s", e)
 
@@ -112,17 +102,30 @@ def run_infinite_post_data_loop():
             engine = new_connector.create_db_connector()
 
             with engine.connect() as connection:
-                # Pinterest data
-                pin_query = text(f"SELECT * FROM pinterest_data LIMIT {random_row}, 1")
-                fetch_and_send_data(connection, pin_query, "streaming-12b83b649269-pin", transform_pin_data)
+                
+                # Define a mapping of queries to functions
+                queries = {
+                    "pin": {
+                        "query": text(f"SELECT * FROM pinterest_data LIMIT {random_row}, 1"),
+                        "stream_name": "streaming-12b83b649269-pin",
+                        "transform_func": transform_pin_data
+                    },
+                    "geo": {
+                        "query": text(f"SELECT * FROM geolocation_data LIMIT {random_row}, 1"),
+                        "stream_name": "streaming-12b83b649269-geo",
+                        "transform_func": transform_geo_data
+                    },
+                    "user": {
+                        "query": text(f"SELECT * FROM user_data LIMIT {random_row}, 1"),
+                        "stream_name": "streaming-12b83b649269-user",
+                        "transform_func": transform_user_data
+                    }
+                }
 
-                # Geolocation data
-                geo_query = text(f"SELECT * FROM geolocation_data LIMIT {random_row}, 1")
-                fetch_and_send_data(connection, geo_query, "streaming-12b83b649269-geo", transform_geo_data)
-
-                # User data
-                user_query = text(f"SELECT * FROM user_data LIMIT {random_row}, 1")
-                fetch_and_send_data(connection, user_query, "streaming-12b83b649269-user", transform_user_data)
+                # Dynamically call based on the mapping
+                for key, value in queries.items():
+                    logging.info(f"Processing {key} data")
+                    fetch_and_send_data(connection, value['query'], value['stream_name'], value['transform_func'])
 
         except Exception as e:
             logging.error("An error occurred: %s", e)
