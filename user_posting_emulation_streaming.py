@@ -30,106 +30,90 @@ class AWSDBConnector:
             logging.error("Database connection failed: %s", e)
             raise
 
-def send_data_to_kinesis(data, stream_name, max_retries=5):
-    attempt = 0
-    while attempt < max_retries:
-        try:
-            invoke_url = "https://p5k3s07dwl.execute-api.us-east-1.amazonaws.com/beta"
-            url = f"{invoke_url}/streams/{stream_name}/record"
-            headers = {'Content-Type': 'application/json'}
-            response = requests.post(url, headers=headers, data=json.dumps(data))
-            response.raise_for_status()
-            logging.info("Data sent to Kinesis successfully: %s", response.status_code)
-            return
-        except requests.RequestException as e:
-            attempt += 1
-            sleep_time = 2 ** attempt
-            logging.error("Failed to send data to Kinesis (attempt %d): %s", attempt, e)
-            sleep(sleep_time)
-    logging.error("Max retries exceeded. Failed to send data to Kinesis: %s", data)
-
-def fetch_and_send_data(connection, query, stream_name, transform_function):
-    try:
-        result = connection.execute(query).fetchone()
-        if result:
-            data_dict = dict(result._mapping)
-            transformed_data = transform_function(data_dict)  # Call the appropriate transformation function
-            send_data_to_kinesis(transformed_data, stream_name)
-            logging.info("Data sent: %s", data_dict)
-            return transformed_data
-    except Exception as e:
-        logging.error("Error in fetch and send: %s", e)
-
-def transform_pin_data(pin_dict):
-    return {
-        "index": pin_dict["index"],
-        "unique_id": pin_dict["unique_id"],
-        "title": pin_dict["title"],
-        "description": pin_dict["description"],
-        "poster_name": pin_dict["poster_name"],
-        "follower_count": pin_dict["follower_count"],
-        "tag_list": pin_dict["tag_list"],
-        "is_image_or_video": pin_dict["is_image_or_video"],
-        "image_src": pin_dict["image_src"],
-        "downloaded": pin_dict["downloaded"],
-        "save_location": pin_dict["save_location"],
-        "category": pin_dict["category"]
-    }
-
-def transform_geo_data(geo_dict):
-    return {
-        "ind": geo_dict["ind"],
-        "timestamp": geo_dict["timestamp"].isoformat(),
-        "latitude": geo_dict["latitude"],
-        "longitude": geo_dict["longitude"],
-        "country": geo_dict["country"]
-    }
-
-def transform_user_data(user_dict):
-    return {
-        "ind": user_dict["ind"],
-        "first_name": user_dict["first_name"],
-        "last_name": user_dict["last_name"],
-        "age": user_dict["age"],
-        "date_joined": user_dict["date_joined"].isoformat()
-    }
+new_connector = AWSDBConnector()
 
 def run_infinite_post_data_loop():
     while True:
         try:
-            sleep(random.uniform(0, 2))
+            sleep(random.uniform(0, 2))  
             random_row = random.randint(0, 11000)
             engine = new_connector.create_db_connector()
 
             with engine.connect() as connection:
-                
-                # Define a mapping of queries to functions
-                queries = {
-                    "pin": {
-                        "query": text(f"SELECT * FROM pinterest_data LIMIT {random_row}, 1"),
-                        "stream_name": "streaming-12b83b649269-pin",
-                        "transform_func": transform_pin_data
-                    },
-                    "geo": {
-                        "query": text(f"SELECT * FROM geolocation_data LIMIT {random_row}, 1"),
-                        "stream_name": "streaming-12b83b649269-geo",
-                        "transform_func": transform_geo_data
-                    },
-                    "user": {
-                        "query": text(f"SELECT * FROM user_data LIMIT {random_row}, 1"),
-                        "stream_name": "streaming-12b83b649269-user",
-                        "transform_func": transform_user_data
-                    }
-                }
+                # Pinterest Data
+                pin_query = text(f"SELECT * FROM pinterest_data LIMIT {random_row}, 1")
+                pin_selected_row = connection.execute(pin_query)
+                for row in pin_selected_row:
+                    pin_result = dict(row._mapping)
+                    pin_payload = json.dumps({
+                        "StreamName": "streaming-12b83b649269-pin",  
+                        "Data": {
+                            "index": pin_result["index"],
+                            "unique_id": pin_result["unique_id"],
+                            "title": pin_result["title"],
+                            "description": pin_result["description"],
+                            "poster_name": pin_result["poster_name"],
+                            "follower_count": pin_result["follower_count"],
+                            "tag_list": pin_result["tag_list"],
+                            "is_image_or_video": pin_result["is_image_or_video"],
+                            "image_src": pin_result["image_src"],
+                            "downloaded": pin_result["downloaded"],
+                            "save_location": pin_result["save_location"],
+                            "category": pin_result["category"]
+                        },
+                        "PartitionKey": "pin_partition1"
+                    })
+                    logging.info(f"Pin Payload: {pin_payload}")
 
-                # Dynamically call based on the mapping
-                for key, value in queries.items():
-                    logging.info(f"Processing {key} data")
-                    fetch_and_send_data(connection, value['query'], value['stream_name'], value['transform_func'])
+                # Geolocation Data
+                geo_query = text(f"SELECT * FROM geolocation_data LIMIT {random_row}, 1")
+                geo_selected_row = connection.execute(geo_query)
+                for row in geo_selected_row:
+                    geo_result = dict(row._mapping)
+                    geo_payload = json.dumps({
+                        "StreamName": "streaming-12b83b649269-geo", 
+                        "Data": {
+                            "ind": geo_result["ind"],
+                            "timestamp": geo_result["timestamp"].isoformat(),
+                            "latitude": geo_result["latitude"],
+                            "longitude": geo_result["longitude"],
+                            "country": geo_result["country"]
+                        },
+                        "PartitionKey": "geo_partition1"
+                    })
+                    logging.info(f"Geo Payload: {geo_payload}")
+
+                # User Data
+                user_query = text(f"SELECT * FROM user_data LIMIT {random_row}, 1")
+                user_selected_row = connection.execute(user_query)
+                for row in user_selected_row:
+                    user_result = dict(row._mapping)
+                    user_payload = json.dumps({
+                        "StreamName": "streaming-12b83b649269-user", 
+                        "Data": {
+                            "ind": user_result["ind"],
+                            "first_name": user_result["first_name"],
+                            "last_name": user_result["last_name"],
+                            "age": user_result["age"],
+                            "date_joined": user_result["date_joined"].isoformat()
+                        },
+                        "PartitionKey": "user_partition1"
+                    })
+                    logging.info(f"User Payload: {user_payload}")
+
+                # Sending data to Kinesis
+                headers = {'Content-Type': 'application/json'}
+                pin_response = requests.request("PUT", "https://p5k3s07dwl.execute-api.us-east-1.amazonaws.com/beta/streams/streaming-12b83b649269-pin/record", headers=headers, data=pin_payload)
+                geo_response = requests.request("PUT", "https://p5k3s07dwl.execute-api.us-east-1.amazonaws.com/beta/streams/streaming-12b83b649269-geo/record", headers=headers, data=geo_payload)
+                user_response = requests.request("PUT", "https://p5k3s07dwl.execute-api.us-east-1.amazonaws.com/beta/streams/streaming-12b83b649269-user/record", headers=headers, data=user_payload)
+
+                # Log the responses
+                logging.info(f"Pin Response: {pin_response.status_code}")
+                logging.info(f"Geo Response: {geo_response.status_code}")
+                logging.info(f"User Response: {user_response.status_code}")
 
         except Exception as e:
-            logging.error("An error occurred: %s", e)
+            logging.error(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    new_connector = AWSDBConnector()
     run_infinite_post_data_loop()
