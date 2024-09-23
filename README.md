@@ -104,7 +104,7 @@ AWS Kinesis is used for ingesting and processing real-time data streams. This pr
 ## File Structure:
 
 pinterest-data-pipeline652/ 
-│ 
+
 ├── .gitignore # File to specify intentionally untracked files 
 
 ├── 0ec6d756577b_dag.py # Airflow DAG script for scheduling batch jobs 
