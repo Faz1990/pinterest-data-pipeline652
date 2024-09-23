@@ -111,7 +111,9 @@ pinterest-data-pipeline652/
 
 ├── Kinesis Streaming 2024-09-23 11_48_09.ipynb # Jupyter Notebook for Kinesis streaming 
 
-├── Mount S3 bucket to databricks & Queries 2024-08-27 20_40_10.ipynb # Jupyter Notebook for mounting S3 and running queries 
+├── Mount S3 bucket to databricks & Queries 2024-08-27 20_40_10.ipynb # Jupyter Notebook for mounting S3 and running queries
+
+├── Pinterest_Data_Pipeline_Architecture.png # Cloud Architecture Diagram for the Pinterest Data Pipeline
 
 ├── README.md # Documentation for the project 
 
