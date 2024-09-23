@@ -103,7 +103,7 @@ AWS Kinesis is used for ingesting and processing real-time data streams. This pr
 
 ## File Structure:
 
-/pinterest-data-pipeline652/ │ ├── .gitignore # File to specify intentionally untracked files ├── 0ec6d756577b_dag.py # Airflow DAG script for scheduling batch jobs ├── Kinesis Streaming 2024-09-23 11_48_09.ipynb # Jupyter Notebook for Kinesis streaming ├── Mount S3 bucket to databricks & Queries.ipynb # Jupyter Notebook for mounting S3 and running queries ├── README.md # Documentation for the project ├── user_posting_emulation.py # Script for simulating user post data ├── user_posting_emulation_streaming.py # Script for simulating streaming user post data
+pinterest-data-pipeline652/ │ ├── .gitignore # File to specify intentionally untracked files ├── 0ec6d756577b_dag.py # Airflow DAG script for scheduling batch jobs ├── Kinesis Streaming 2024-09-23 11_48_09.ipynb # Jupyter Notebook for Kinesis streaming ├── Mount S3 bucket to databricks & Queries 2024-08-27 20_40_10.ipynb # Jupyter Notebook for mounting S3 and running queries ├── README.md # Documentation for the project ├── user_posting_emulation.py # Script for simulating user post data ├── user_posting_emulation_streaming.py # Script for simulating streaming user post data
 
 ---
 
