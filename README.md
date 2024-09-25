@@ -82,7 +82,7 @@ pinterest-data-pipeline652/
 ├── README.md                                # Documentation
 ├── user_posting_emulation.py                # Script for simulating post data
 ├── user_posting_emulation_streaming.py      # Script for simulating streaming data
-
+```
 ## What I Learned:
 
 - **Real-time stream processing**: Gained proficiency in handling real-time data streams using AWS Kinesis and Apache Kafka.
