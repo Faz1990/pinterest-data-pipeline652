@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 # Define params for Submit Run Operator
 notebook_task = {
-    'notebook_path': '/Workspace/Users/faisal1990@hotmail.co.uk/0ec6d756577b.py',
+    'notebook_path': '/Workspace/Users/faisal1990@hotmail.co.uk/Mount S3 bucket to databricks & Queries 2024-08-27 20_40_10.ipynb',
 }
 
 default_args = {
