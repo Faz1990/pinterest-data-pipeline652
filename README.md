@@ -1,18 +1,4 @@
-
 # Pinterest Data Pipeline Project
-
----
-
-## Table of Contents:
-- [Project Description](#project-description)
-- [Installation](#installation)
-- [Batch Processing](#batch-processing)
-- [Kinesis Streaming](#kinesis-streaming)
-- [Technologies Used](#technologies-used)
-- [Usage](#usage)
-- [File Structure](#file-structure)
-- [What I Learned](#what-i-learned)
-- [License](#license)
 
 ---
 
@@ -21,123 +7,103 @@ This project implements a data pipeline to process real-time and batch data stre
 
 ---
 
-## Installation:
+## Architecture Diagram:
 
-1. **Databricks Setup**:
-   - Create and configure a Databricks cluster for Spark processing.
+![Pinterest Data Pipeline Architecture](./Pinterest_Data_Pipeline_Architecture.png.jpeg)
 
-2. **Install AWS SDK**:
-   - Install the necessary AWS libraries, such as boto3, in your environment.
+---
 
-3. **AWS Credentials**:
-   - Securely store and manage your AWS credentials within Databricks for accessing MSK and Kinesis.
-
-4. **Kafka/MSK Setup**:
-   - Configure an MSK cluster and Kafka topics for batch data ingestion.
+## Table of Contents:
+- [Project Description](#project-description)
+- [Batch Processing](#batch-processing)
+- [Kinesis Streaming](#kinesis-streaming)
+- [Technologies Used](#technologies-used)
+- [Usage](#usage)
+- [File Structure](#file-structure)
+- [What I Learned](#what-i-learned)
+- [Improvements (If I Had More Time)](#improvements-if-i-had-more-time)
+- [License](#license)
 
 ---
 
 ## Batch Processing
 
-The batch processing component of the pipeline begins by configuring an EC2 instance to run Kafka and setting up MSK (Managed Streaming for Kafka) to stream data to an S3 bucket. An API Gateway is then configured to send data to the MSK cluster, where Kafka topics are defined and used to capture data for batch processing. Databricks is integrated with MSK, allowing data from the S3 bucket to be mounted and processed using Apache Spark. Data cleaning and transformation steps are performed on the batch data, which includes Pinterest posts, geolocation data, and user data, before saving it to Delta tables for further analysis. This component also leverages AWS MWAA (Managed Workflows for Apache Airflow) to orchestrate the batch workflows in an automated fashion.
+The batch processing component of the pipeline starts by setting up an EC2 instance to run Kafka, and MSK (Managed Streaming for Kafka) streams data into an S3 bucket. API Gateway sends data to the MSK cluster, where Kafka topics capture data for batch processing. Databricks mounts the S3 data and processes it using Apache Spark, applying cleaning and transformation steps to Pinterest, geolocation, and user data before storing it in Delta tables for analysis. AWS MWAA (Managed Workflows for Apache Airflow) orchestrates the batch workflows, automating the entire process.
 
 ---
 
 ## Kinesis Streaming
 
-In the real-time streaming component, AWS Kinesis Data Streams is configured to handle live data streams from multiple sources. An API Gateway is integrated with Kinesis to send real-time data to the streams. Databricks then consumes the streaming data from Kinesis and applies necessary transformations, including cleaning and formatting, to ensure the data is ready for storage. The cleaned and transformed data is then written to Delta tables, where it can be queried in real-time for further analysis. This ensures continuous data flow from the source through to the final storage layer.
+In the real-time streaming component, AWS Kinesis Data Streams handle live data from various sources. API Gateway integrates with Kinesis to stream the data, which is consumed by Databricks. Spark in Databricks processes the streaming data, performing necessary transformations such as cleaning and formatting before saving it into Delta tables. This ensures continuous data flow, allowing real-time analysis of the data as it moves through the pipeline.
 
 ---
+
 ## Technologies Used:
 
-### Apache Kafka
-Apache Kafka is an event streaming platform. It enables real-time data capture from event sources, stores event streams durably for retrieval, and processes them in real-time or retrospectively. Kafka ensures continuous data flow, which is crucial for this project’s batch processing pipeline.
-
-### AWS MSK
-Amazon Managed Streaming for Apache Kafka (MSK) is a fully managed Kafka service, used here to manage Kafka clusters and facilitate event stream ingestion and processing.
-
-### AWS MSK Connect
-MSK Connect simplifies the connection between Kafka clusters and external data sources like S3. It allows importing/exporting data between Kafka topics and other storage systems via pre-built connectors.
-
-### Kafka REST Proxy
-The Kafka REST Proxy provides a REST interface for interacting with a Kafka cluster. It simplifies producing and consuming messages in Kafka without needing to rely on native Kafka clients.
-
-### AWS API Gateway
-Amazon API Gateway manages and publishes APIs at scale. It acts as the "front door" for applications to access backend services, such as the Kafka cluster or other API-driven systems in this project.
-
-### Apache Spark
-Apache Spark is a distributed data processing engine, which is used in this project for both batch and streaming data processing. It integrates well with both Kinesis and Kafka, providing a unified platform for real-time and batch data analysis.
-
-### PySpark
-PySpark, the Python API for Spark, is used for real-time and large-scale data processing within Databricks. It combines the simplicity of Python with Spark’s powerful distributed processing engine.
-
-### Databricks
-Databricks is the platform used in this project for executing batch and streaming processes with Spark. It provides a unified environment for development, deployment, and management of data pipelines at scale.
-
-### Managed Workflows for Apache Airflow (MWAA)
-Apache Airflow orchestrates workflows and schedules batch processes. MWAA is used to automate batch processing tasks on Databricks.
-
-### AWS Kinesis
-AWS Kinesis is used for ingesting and processing real-time data streams. This project uses Kinesis Data Streams to temporarily store data, which is then processed by Spark in Databricks.
+- **Apache Kafka**: Event streaming platform for real-time data capture and processing.
+- **AWS MSK**: Managed Kafka service that simplifies streaming event ingestion.
+- **AWS API Gateway**: Used to expose APIs for managing the data flow.
+- **AWS Kinesis**: Real-time streaming service for processing continuous data streams.
+- **Databricks**: Unified analytics platform for batch and stream processing with Apache Spark.
+- **PySpark**: Python API for Spark, used for real-time and batch data processing.
+- **MWAA**: Managed workflows with Airflow to automate and schedule batch processes.
+- **Delta Lake**: Storage layer that provides reliability and performance for big data processing.
 
 ---
 
 ## Usage:
 
 1. **Data Ingestion**:
-   - Data from Kinesis and Kafka streams is ingested into Databricks using Spark.
+   - Kinesis and Kafka streams feed data into Databricks using Spark.
    
 2. **Data Cleaning**:
-   - Real-time and batch data are cleaned, transformed, and processed in Databricks before storing them in Delta tables.
+   - Both real-time and batch data streams undergo transformation and cleaning in Databricks before being written to Delta tables.
 
 3. **Data Storage**:
-   - Cleaned data is saved into Delta tables using the following names:
+   - Cleaned data is stored in Delta tables:
      - `12b83b649269_pin_table`
      - `12b83b649269_geo_table`
      - `12b83b649269_user_table`
 
-4. **Running the Project**:
-   - The pipeline is orchestrated with Apache Airflow (MWAA) for batch processing and Spark Structured Streaming for real-time data processing.
+4. **Execution**:
+   - Batch processing is orchestrated using Apache Airflow (MWAA), while Databricks Structured Streaming handles real-time data streams.
 
 ---
 
 ## File Structure:
 
-pinterest-data-pipeline652/ 
+```plaintext
+pinterest-data-pipeline652/
+├── .gitignore
+├── 0ec6d756577b_dag.py                      # Airflow DAG for batch processing
+├── Kinesis Streaming 2024-09-23.ipynb        # Jupyter Notebook for Kinesis streaming
+├── Mount S3 to Databricks 2024-08-27.ipynb   # Jupyter Notebook for mounting S3 and running queries
+├── Pinterest_Data_Pipeline_Architecture.png  # Cloud architecture diagram
+├── README.md                                # Documentation
+├── user_posting_emulation.py                # Script for simulating post data
+├── user_posting_emulation_streaming.py      # Script for simulating streaming data
 
-├── .gitignore # File to specify intentionally untracked files 
+## What I Learned:
 
-├── 0ec6d756577b_dag.py # Airflow DAG script for scheduling batch jobs 
-
-├── Kinesis Streaming 2024-09-23 11_48_09.ipynb # Jupyter Notebook for Kinesis streaming 
-
-├── Mount S3 bucket to databricks & Queries 2024-08-27 20_40_10.ipynb # Jupyter Notebook for mounting S3 and running queries
-
-├── Pinterest_Data_Pipeline_Architecture.png # Cloud Architecture Diagram for the Pinterest Data Pipeline
-
-├── README.md # Documentation for the project 
-
-├── user_posting_emulation.py # Script for simulating user post data 
-
-├── user_posting_emulation_streaming.py # Script for simulating streaming user post data
+- **Real-time stream processing**: Gained proficiency in handling real-time data streams using AWS Kinesis and Apache Kafka.
+- **Batch processing**: Developed skills in batch processing workflows using AWS MSK (Managed Streaming for Kafka) and orchestrating them with Apache Airflow (MWAA).
+- **Data transformation**: Learned how to perform large-scale data transformations using **PySpark** in Databricks.
+- **AWS Integration**: Gained hands-on experience integrating various AWS services (Kinesis, MSK, S3, Databricks) into a unified data pipeline.
+- **Big Data management**: Developed an understanding of how to process, clean, and store large datasets in **Delta Lake** tables for both real-time and batch processing use cases.
 
 ---
 
-## What I Learned:
-This project enhanced my understanding of:
-- Real-time stream processing with AWS Kinesis.
-- Batch processing with Apache Kafka and MSK.
-- Data transformation and cleaning using PySpark in Databricks.
-- Automating workflows using AWS MWAA and Delta Lake for efficient storage.
+## Improvements (If I Had More Time):
+
+- **Performance Tuning**: Optimize batch and streaming jobs for higher efficiency.
+- **Security Enhancements**: Implement better security practices, such as encrypting data in transit and at rest, and using IAM roles for restricted access.
+- **Monitoring & Alerts**: Add more comprehensive monitoring and alerting mechanisms using CloudWatch and Datadog.
+- **Cost Optimization**: Introduce cost-saving mechanisms, such as auto-scaling and serverless options like AWS Lambda where appropriate.
+- **Enhanced Data Quality Checks**: Implement more rigorous data validation and anomaly detection mechanisms within the data pipeline to ensure higher data accuracy.
 
 ---
 
 ## License:
 This project is licensed under the MIT License. Feel free to use, modify, and distribute the code as per the terms of the license.
 
----
 
-## Final Thoughts:
-This README will evolve as the project grows. Make sure to update it regularly as you implement new features or modify existing components.
-
----
